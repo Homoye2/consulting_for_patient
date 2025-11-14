@@ -10,7 +10,8 @@ from .views import (
     PrescriptionViewSet, MouvementStockViewSet,
     StatistiquesView, StatistiquesConsultationsView,
     StatistiquesRendezVousView, StatistiquesStocksView,
-    LandingPageContentViewSet, ServiceViewSet, ValueViewSet
+    LandingPageContentViewSet, ServiceViewSet, ValueViewSet,
+    ContactMessageViewSet
 )
 
 
@@ -66,6 +67,7 @@ router.register(r'mouvements-stock', MouvementStockViewSet, basename='mouvement-
 router.register(r'landing-page', LandingPageContentViewSet, basename='landing-page')
 router.register(r'services', ServiceViewSet, basename='service')
 router.register(r'values', ValueViewSet, basename='value')
+router.register(r'contact-messages', ContactMessageViewSet, basename='contact-message')
 
 urlpatterns = [
     # Authentification JWT

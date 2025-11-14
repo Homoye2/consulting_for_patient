@@ -5,7 +5,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     User, Patient, MethodeContraceptive, RendezVous,
     ConsultationPF, StockItem, Prescription, MouvementStock,
-    LandingPageContent, Service, Value
+    LandingPageContent, Service, Value, ContactMessage
 )
 
 
@@ -58,6 +58,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Créer le token
         refresh = self.get_token(user)
         
+        # Vérifier si l'utilisateur a un profil patient
+        is_patient = hasattr(user, 'patient_profile')
+        patient_id = None
+        if is_patient:
+            patient_id = user.patient_profile.id
+        
         # Préparer la réponse
         data = {
             'refresh': str(refresh),
@@ -70,6 +76,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'email': user.email,
             'nom': user.nom,
             'role': user.role,
+            'is_patient': is_patient,
+            'patient_id': patient_id,
         }
         
         return data
@@ -115,8 +123,8 @@ class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = [
-            'id', 'nom', 'prenom', 'dob', 'sexe', 'telephone', 
-            'adresse', 'antecedents', 'allergies', 'age', 
+            'id', 'nom', 'prenom', 'dob', 'sexe', 'telephone', 'email',
+            'adresse', 'antecedents', 'allergies', 'age', 'user',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -179,18 +187,25 @@ class ConsultationPFSerializer(serializers.ModelSerializer):
 class ConsultationPFListSerializer(serializers.ModelSerializer):
     """Serializer simplifié pour la liste des consultations"""
     patient_nom_complet = serializers.SerializerMethodField()
-    professionnel_nom = serializers.CharField(source='user.nom', read_only=True)
-    methode_prescite_nom = serializers.CharField(source='methode_prescite.nom', read_only=True)
+    professionnel_nom = serializers.SerializerMethodField()
+    methode_prescite_nom = serializers.SerializerMethodField()
     
     class Meta:
         model = ConsultationPF
         fields = [
             'id', 'patient_nom_complet', 'professionnel_nom', 'date', 
-            'methode_prescite_nom', 'methode_posee'
+            'methode_prescite_nom', 'methode_posee', 'anamnese', 'examen',
+            'effets_secondaires', 'notes', 'observation'
         ]
     
     def get_patient_nom_complet(self, obj):
         return f"{obj.patient.nom} {obj.patient.prenom}"
+    
+    def get_professionnel_nom(self, obj):
+        return obj.user.nom if obj.user else ''
+    
+    def get_methode_prescite_nom(self, obj):
+        return obj.methode_prescite.nom if obj.methode_prescite else None
 
 
 class StockItemSerializer(serializers.ModelSerializer):
@@ -329,3 +344,12 @@ class LandingPageContentUpdateSerializer(serializers.ModelSerializer):
             'footer_about_text', 'footer_address', 'footer_phone', 'footer_email',
             'footer_facebook', 'footer_twitter', 'footer_instagram', 'footer_linkedin',
         ]
+
+
+class ContactMessageSerializer(serializers.ModelSerializer):
+    """Serializer pour les messages de contact"""
+    
+    class Meta:
+        model = ContactMessage
+        fields = ['id', 'nom', 'email', 'sujet', 'message', 'patient', 'lu', 'date_creation']
+        read_only_fields = ['id', 'lu', 'date_creation']

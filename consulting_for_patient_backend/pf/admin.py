@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
     User, Patient, MethodeContraceptive, RendezVous,
     ConsultationPF, StockItem, Prescription, MouvementStock,
-    LandingPageContent, Service, Value
+    LandingPageContent, Service, Value, ContactMessage
 )
 
 
@@ -153,3 +153,19 @@ class LandingPageContentAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Empêcher la suppression
         return False
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    """Admin pour le modèle ContactMessage"""
+    list_display = ['nom', 'email', 'sujet', 'patient', 'lu', 'date_creation']
+    list_filter = ['lu', 'date_creation']
+    search_fields = ['nom', 'email', 'sujet', 'message']
+    readonly_fields = ['date_creation']
+    date_hierarchy = 'date_creation'
+    
+    def mark_as_read(self, request, queryset):
+        queryset.update(lu=True)
+    mark_as_read.short_description = "Marquer comme lu"
+    
+    actions = [mark_as_read]

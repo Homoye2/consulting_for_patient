@@ -12,7 +12,7 @@ from drf_yasg import openapi
 from .models import (
     User, Patient, MethodeContraceptive, RendezVous,
     ConsultationPF, StockItem, Prescription, MouvementStock,
-    LandingPageContent, Service, Value
+    LandingPageContent, Service, Value, ContactMessage
 )
 from .serializers import (
     UserSerializer, UserCreateSerializer, PatientSerializer, PatientListSerializer,
@@ -20,12 +20,12 @@ from .serializers import (
     ConsultationPFListSerializer, StockItemSerializer, PrescriptionSerializer,
     MouvementStockSerializer, MouvementStockCreateSerializer,
     LandingPageContentSerializer, LandingPageContentUpdateSerializer,
-    ServiceSerializer, ValueSerializer
+    ServiceSerializer, ValueSerializer, ContactMessageSerializer
 )
 from .permissions import (
     IsAdminOrReadOnly, IsAdminOrMedicalStaff, IsAdminOrPharmacist,
     IsAdminOrReception, CanManageUsers, CanManageStock, CanManageConsultations,
-    CanManageAppointments
+    CanManageAppointments, IsPatientOrStaff, IsPatientOrAdmin
 )
 
 
@@ -69,7 +69,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class PatientViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des patients"""
     queryset = Patient.objects.all()
-    permission_classes = [IsAuthenticated, IsAdminOrMedicalStaff]
+    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['sexe']
     search_fields = ['nom', 'prenom', 'telephone']
@@ -80,6 +80,31 @@ class PatientViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return PatientListSerializer
         return PatientSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Si c'est un patient, voir seulement son propre profil
+        if hasattr(self.request.user, 'patient_profile'):
+            patient = self.request.user.patient_profile
+            queryset = queryset.filter(id=patient.id)
+        
+        return queryset
+    
+    def get_object(self):
+        # Si c'est un patient, retourner son propre profil
+        if hasattr(self.request.user, 'patient_profile'):
+            return self.request.user.patient_profile
+        return super().get_object()
+    
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """Retourne le profil du patient connecté"""
+        if hasattr(request.user, 'patient_profile'):
+            patient = request.user.patient_profile
+            serializer = self.get_serializer(patient)
+            return Response(serializer.data)
+        return Response({'error': 'Aucun profil patient trouvé'}, status=404)
     
     @action(detail=True, methods=['get'])
     def consultations(self, request, pk=None):
@@ -114,7 +139,7 @@ class RendezVousViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des rendez-vous"""
     queryset = RendezVous.objects.all()
     serializer_class = RendezVousSerializer
-    permission_classes = [IsAuthenticated, CanManageAppointments]
+    permission_classes = [IsAuthenticated, IsPatientOrStaff]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['statut', 'patient', 'user']
     search_fields = ['patient__nom', 'patient__prenom', 'notes']
@@ -137,6 +162,10 @@ class RendezVousViewSet(viewsets.ModelViewSet):
         if self.request.user.role != 'administrateur':
             if self.request.user.role in ['medecin', 'sage_femme', 'infirmier']:
                 queryset = queryset.filter(user=self.request.user)
+            elif hasattr(self.request.user, 'patient_profile'):
+                # Si c'est un patient, voir seulement ses propres rendez-vous
+                patient = self.request.user.patient_profile
+                queryset = queryset.filter(patient=patient)
         
         return queryset
     
@@ -189,7 +218,7 @@ class RendezVousViewSet(viewsets.ModelViewSet):
 class ConsultationPFViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des consultations PF"""
     queryset = ConsultationPF.objects.all()
-    permission_classes = [IsAuthenticated, CanManageConsultations]
+    permission_classes = [IsAuthenticated, IsPatientOrStaff]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['patient', 'user', 'methode_prescite', 'methode_posee']
     search_fields = ['patient__nom', 'patient__prenom', 'notes', 'anamnese']
@@ -215,7 +244,12 @@ class ConsultationPFViewSet(viewsets.ModelViewSet):
         
         # Si l'utilisateur n'est pas admin, voir seulement ses consultations
         if self.request.user.role != 'administrateur':
-            queryset = queryset.filter(user=self.request.user)
+            if self.request.user.role in ['medecin', 'sage_femme', 'infirmier']:
+                queryset = queryset.filter(user=self.request.user)
+            elif hasattr(self.request.user, 'patient_profile'):
+                # Si c'est un patient, voir seulement ses propres consultations
+                patient = self.request.user.patient_profile
+                queryset = queryset.filter(patient=patient)
         
         return queryset
     
@@ -510,6 +544,22 @@ class LandingPageContentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(content)
         return Response(serializer.data)
     
+    def update(self, request, *args, **kwargs):
+        # Mise à jour complète
+        content = LandingPageContent.get_content()
+        serializer = self.get_serializer(content, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    
+    def partial_update(self, request, *args, **kwargs):
+        # Mise à jour partielle
+        content = LandingPageContent.get_content()
+        serializer = self.get_serializer(content, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    
     @action(detail=False, methods=['get'], permission_classes=[])
     def public(self, request):
         """Endpoint public pour récupérer le contenu de la landing page (sans authentification)"""
@@ -536,3 +586,33 @@ class ValueViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['ordre']
     ordering = ['ordre']
+
+
+class ContactMessageViewSet(viewsets.ModelViewSet):
+    """ViewSet pour la gestion des messages de contact"""
+    queryset = ContactMessage.objects.all()
+    serializer_class = ContactMessageSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['date_creation']
+    ordering = ['-date_creation']
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Les patients voient seulement leurs propres messages
+        if hasattr(self.request.user, 'patient_profile'):
+            patient = self.request.user.patient_profile
+            queryset = queryset.filter(patient=patient)
+        # Les admins et le personnel voient tous les messages
+        elif self.request.user.role not in ['administrateur', 'medecin', 'sage_femme', 'infirmier', 'agent_enregistrement']:
+            queryset = queryset.none()
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        # Associer le message au patient si l'utilisateur a un profil patient
+        if hasattr(self.request.user, 'patient_profile'):
+            serializer.save(patient=self.request.user.patient_profile)
+        else:
+            serializer.save()

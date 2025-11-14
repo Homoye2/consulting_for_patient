@@ -49,8 +49,37 @@ export const LandingPageAdmin = () => {
   const handleSaveContent = async () => {
     try {
       setSaving(true)
-      await landingPageService.partialUpdate(content)
+      // Créer un objet avec uniquement les champs modifiables (exclure services, values, id, dates)
+      const updateData = {
+        logo_text: content.logo_text,
+        hero_title: content.hero_title,
+        hero_description: content.hero_description,
+        hero_button_primary: content.hero_button_primary,
+        hero_button_secondary: content.hero_button_secondary,
+        about_title: content.about_title,
+        about_description_1: content.about_description_1,
+        about_description_2: content.about_description_2,
+        about_stat_1_value: content.about_stat_1_value,
+        about_stat_1_label: content.about_stat_1_label,
+        about_stat_2_value: content.about_stat_2_value,
+        about_stat_2_label: content.about_stat_2_label,
+        services_title: content.services_title,
+        services_subtitle: content.services_subtitle,
+        values_title: content.values_title,
+        values_subtitle: content.values_subtitle,
+        footer_about_text: content.footer_about_text,
+        footer_address: content.footer_address,
+        footer_phone: content.footer_phone,
+        footer_email: content.footer_email,
+        footer_facebook: content.footer_facebook,
+        footer_twitter: content.footer_twitter,
+        footer_instagram: content.footer_instagram,
+        footer_linkedin: content.footer_linkedin,
+      }
+      await landingPageService.partialUpdate(updateData)
       alert('Contenu sauvegardé avec succès !')
+      // Recharger les données pour avoir la version à jour
+      await fetchData()
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error)
       alert('Erreur lors de la sauvegarde')

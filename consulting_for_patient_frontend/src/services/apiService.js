@@ -115,3 +115,10 @@ export const landingValuesService = {
   delete: (id) => api.delete(`/values/${id}/`),
 }
 
+// Messages de contact
+export const contactMessagesService = {
+  getAll: (params) => api.get('/contact-messages/', { params }),
+  getById: (id) => api.get(`/contact-messages/${id}/`),
+  create: (data) => api.post('/contact-messages/', data),
+}
+

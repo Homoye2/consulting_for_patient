@@ -10,6 +10,12 @@ import { Consultations } from './pages/Consultations'
 import { RendezVous } from './pages/RendezVous'
 import { Stocks } from './pages/Stocks'
 import { Utilisateurs } from './pages/Utilisateurs'
+import { PatientLayout } from './components/patient/PatientLayout'
+import { PatientDashboard } from './pages/patient/PatientDashboard'
+import { PatientRendezVous } from './pages/patient/PatientRendezVous'
+import { PatientConsultations } from './pages/patient/PatientConsultations'
+import { PatientContact } from './pages/patient/PatientContact'
+import { PatientProfile } from './pages/patient/PatientProfile'
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth()
@@ -81,6 +87,57 @@ const AppRoutes = () => {
             <Layout>
               <Utilisateurs />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* Routes Patient */}
+      <Route
+        path="/patient/dashboard"
+        element={
+          <ProtectedRoute>
+            <PatientLayout>
+              <PatientDashboard />
+            </PatientLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/patient/rendez-vous"
+        element={
+          <ProtectedRoute>
+            <PatientLayout>
+              <PatientRendezVous />
+            </PatientLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/patient/consultations"
+        element={
+          <ProtectedRoute>
+            <PatientLayout>
+              <PatientConsultations />
+            </PatientLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/patient/contact"
+        element={
+          <ProtectedRoute>
+            <PatientLayout>
+              <PatientContact />
+            </PatientLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/patient/profile"
+        element={
+          <ProtectedRoute>
+            <PatientLayout>
+              <PatientProfile />
+            </PatientLayout>
           </ProtectedRoute>
         }
       />

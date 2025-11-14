@@ -24,7 +24,13 @@ export const Login = () => {
     setLoading(false)
 
     if (result.success) {
-      navigate('/dashboard')
+      // Rediriger les patients vers leur interface, les autres vers le dashboard
+      const currentUser = JSON.parse(localStorage.getItem('user'))
+      if (currentUser?.patient_profile || currentUser?.is_patient) {
+        navigate('/patient/dashboard')
+      } else {
+        navigate('/dashboard')
+      }
     } else {
       setError(result.error || 'Erreur de connexion')
     }
@@ -77,6 +83,9 @@ export const Login = () => {
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Connexion...' : 'Se connecter'}
+            </Button>
+            <Button onClick={() => navigate('/')} className="w-full bg-gray-500 text-white">
+              Retour à la page d'accueil  
             </Button>
           </form>
         </CardContent>

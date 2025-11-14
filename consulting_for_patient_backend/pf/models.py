@@ -85,9 +85,18 @@ class Patient(models.Model):
     dob = models.DateField(verbose_name='Date de naissance')
     sexe = models.CharField(max_length=1, choices=SEXE_CHOICES)
     telephone = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True, unique=True, verbose_name='Email')
     adresse = models.TextField(blank=True, null=True)
     antecedents = models.TextField(blank=True, null=True, verbose_name='Antécédents')
     allergies = models.TextField(blank=True, null=True, verbose_name='Allergies')
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='patient_profile',
+        verbose_name='Compte utilisateur'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -98,6 +107,7 @@ class Patient(models.Model):
         indexes = [
             models.Index(fields=['nom', 'prenom']),
             models.Index(fields=['telephone']),
+            models.Index(fields=['email']),
         ]
     
     def __str__(self):
@@ -116,7 +126,7 @@ class MethodeContraceptive(models.Model):
     CATEGORIE_CHOICES = [
         ('hormonale', 'Hormonale'),
         ('barriere', 'Barrière'),
-        ('iud', 'Dispositif intra-utérin (DIU)'),
+        ('iud', 'DIU'),
         ('permanent', 'Permanent'),
         ('naturelle', 'Naturelle'),
     ]
@@ -132,9 +142,7 @@ class MethodeContraceptive(models.Model):
         db_table = 'methodes_contraceptives'
         verbose_name = 'Méthode contraceptive'
         verbose_name_plural = 'Méthodes contraceptives'
-        indexes = [
-            models.Index(fields=['categorie']),
-        ]
+        ordering = ['nom']
     
     def __str__(self):
         return self.nom
@@ -144,19 +152,17 @@ class RendezVous(models.Model):
     """Modèle pour les rendez-vous"""
     
     STATUT_CHOICES = [
-        ('planifie', 'Planifié'),
+        ('en_attente', 'En attente'),
         ('confirme', 'Confirmé'),
-        ('en_cours', 'En cours'),
-        ('termine', 'Terminé'),
         ('annule', 'Annulé'),
-        ('absent', 'Absent'),
+        ('termine', 'Terminé'),
     ]
     
     id = models.BigAutoField(primary_key=True)
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='rendez_vous')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rendez_vous', verbose_name='Professionnel')
     datetime = models.DateTimeField(verbose_name='Date et heure')
-    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='planifie')
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_attente')
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -169,7 +175,6 @@ class RendezVous(models.Model):
             models.Index(fields=['datetime']),
             models.Index(fields=['statut']),
             models.Index(fields=['patient', 'datetime']),
-            models.Index(fields=['user', 'datetime']),
         ]
         ordering = ['-datetime']
     
@@ -228,41 +233,35 @@ class StockItem(models.Model):
     """Modèle pour la gestion des stocks de méthodes contraceptives"""
     
     id = models.BigAutoField(primary_key=True)
-    methode = models.ForeignKey(MethodeContraceptive, on_delete=models.CASCADE, related_name='stock_items')
-    quantite = models.IntegerField(default=0, verbose_name='Quantité disponible')
+    methode = models.OneToOneField(MethodeContraceptive, on_delete=models.CASCADE, related_name='stock')
+    quantite = models.IntegerField(default=0)
     seuil = models.IntegerField(default=10, verbose_name='Seuil d\'alerte')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        db_table = 'stock_items'
-        verbose_name = 'Article de stock'
-        verbose_name_plural = 'Articles de stock'
-        unique_together = ['methode']
-        indexes = [
-            models.Index(fields=['quantite']),
-        ]
+        db_table = 'stocks'
+        verbose_name = 'Stock'
+        verbose_name_plural = 'Stocks'
     
     def __str__(self):
-        return f"{self.methode.nom} - Stock: {self.quantite}"
+        return f"Stock {self.methode.nom}: {self.quantite}"
     
     @property
     def est_en_rupture(self):
-        """Vérifie si le stock est en rupture"""
         return self.quantite <= 0
     
     @property
     def est_sous_seuil(self):
-        """Vérifie si le stock est sous le seuil d'alerte"""
-        return self.quantite <= self.seuil
+        return 0 < self.quantite <= self.seuil
 
 
 class Prescription(models.Model):
-    """Modèle pour les prescriptions de méthodes contraceptives"""
+    """Modèle pour les prescriptions"""
     
     id = models.BigAutoField(primary_key=True)
     consultation = models.ForeignKey(ConsultationPF, on_delete=models.CASCADE, related_name='prescriptions')
-    methode = models.ForeignKey(MethodeContraceptive, on_delete=models.CASCADE, related_name='prescriptions')
+    methode = models.ForeignKey(MethodeContraceptive, on_delete=models.CASCADE)
     dosage = models.CharField(max_length=200, blank=True, null=True)
     remarque = models.TextField(blank=True, null=True)
     date_prescription = models.DateTimeField(auto_now_add=True)
@@ -271,19 +270,16 @@ class Prescription(models.Model):
         db_table = 'prescriptions'
         verbose_name = 'Prescription'
         verbose_name_plural = 'Prescriptions'
-        indexes = [
-            models.Index(fields=['consultation']),
-            models.Index(fields=['date_prescription']),
-        ]
+        ordering = ['-date_prescription']
     
     def __str__(self):
-        return f"Prescription {self.methode.nom} - {self.consultation.patient}"
+        return f"Prescription {self.consultation.patient} - {self.methode.nom}"
 
 
 class MouvementStock(models.Model):
-    """Modèle pour tracer les mouvements de stock (entrées/sorties)"""
+    """Modèle pour les mouvements de stock"""
     
-    TYPE_MOUVEMENT_CHOICES = [
+    TYPE_CHOICES = [
         ('entree', 'Entrée'),
         ('sortie', 'Sortie'),
         ('inventaire', 'Inventaire'),
@@ -292,7 +288,7 @@ class MouvementStock(models.Model):
     
     id = models.BigAutoField(primary_key=True)
     stock_item = models.ForeignKey(StockItem, on_delete=models.CASCADE, related_name='mouvements')
-    type_mouvement = models.CharField(max_length=20, choices=TYPE_MOUVEMENT_CHOICES)
+    type_mouvement = models.CharField(max_length=20, choices=TYPE_CHOICES)
     quantite = models.IntegerField()
     motif = models.TextField(blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='mouvements_stock')
@@ -405,3 +401,32 @@ class Value(models.Model):
     
     def __str__(self):
         return self.titre
+
+
+class ContactMessage(models.Model):
+    """Modèle pour les messages de contact des patients"""
+    
+    id = models.BigAutoField(primary_key=True)
+    nom = models.CharField(max_length=200, verbose_name="Nom")
+    email = models.EmailField(verbose_name="Email")
+    sujet = models.CharField(max_length=200, verbose_name="Sujet")
+    message = models.TextField(verbose_name="Message")
+    patient = models.ForeignKey(
+        Patient, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='messages_contact',
+        verbose_name="Patient"
+    )
+    lu = models.BooleanField(default=False, verbose_name="Lu")
+    date_creation = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'contact_messages'
+        verbose_name = 'Message de contact'
+        verbose_name_plural = 'Messages de contact'
+        ordering = ['-date_creation']
+    
+    def __str__(self):
+        return f"Message de {self.nom} - {self.sujet}"
