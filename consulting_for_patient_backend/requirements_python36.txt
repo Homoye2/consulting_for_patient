@@ -1,0 +1,51 @@
+# Requirements pour Python 3.6.8 avec Django 4.2 LTS
+# Compatible avec cPanel ayant Python 3.6.8
+
+# Django LTS - Compatible Python 3.6+
+Django==4.2.11
+
+# Django REST Framework
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.2.2
+
+# CORS
+django-cors-headers==4.0.0
+
+# Filtres
+django-filter==23.5
+
+# Documentation API (Swagger)
+drf-yasg==1.21.7
+
+# Images
+Pillow==9.5.0
+
+# Google Auth
+google-auth==2.23.4
+
+# HTTP Requests
+requests==2.31.0
+
+# MySQL
+mysqlclient==2.1.1
+
+# Données de test
+faker==20.1.0
+
+# MySQL Connector (alternative)
+mysql-connector-python==8.2.0
+
+# WSGI Server pour production
+gunicorn==20.1.0
+
+# Variables d'environnement
+python-dotenv==1.0.0
+
+# QR Code pour ordonnances
+qrcode==7.4.2
+
+# Monitoring système
+psutil==5.9.6
+
+# Timezone
+pytz==2023.3

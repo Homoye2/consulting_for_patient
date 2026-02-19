@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
-    User, Patient, MethodeContraceptive, RendezVous,
-    ConsultationPF, StockItem, Prescription, MouvementStock,
-    LandingPageContent, Service, Value, ContactMessage
+    User, Patient, RendezVous,
+    ConsultationPF, LandingPageContent, Service, Value, ContactMessage, Pharmacie,
+    Hopital, Specialite, Specialiste, DisponibiliteSpecialiste,
+    Produit, StockProduit, CommandePharmacie, LigneCommande,
+    Notification, RapportConsultation, AvisSpecialiste
 )
 
 
@@ -40,20 +42,12 @@ class PatientAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
 
 
-@admin.register(MethodeContraceptive)
-class MethodeContraceptiveAdmin(admin.ModelAdmin):
-    """Admin pour le modèle MethodeContraceptive"""
-    list_display = ['nom', 'categorie', 'created_at']
-    list_filter = ['categorie']
-    search_fields = ['nom', 'description']
-
-
 @admin.register(RendezVous)
 class RendezVousAdmin(admin.ModelAdmin):
     """Admin pour le modèle RendezVous"""
-    list_display = ['patient', 'user', 'datetime', 'statut', 'created_at']
-    list_filter = ['statut', 'datetime', 'user']
-    search_fields = ['patient__nom', 'patient__prenom', 'notes']
+    list_display = ['patient', 'specialiste', 'hopital', 'datetime', 'statut', 'created_at']
+    list_filter = ['statut', 'datetime', 'hopital', 'specialiste__specialite']
+    search_fields = ['patient__nom', 'patient__prenom', 'notes', 'specialiste__user__nom']
     date_hierarchy = 'datetime'
     readonly_fields = ['created_at', 'updated_at']
 
@@ -61,38 +55,21 @@ class RendezVousAdmin(admin.ModelAdmin):
 @admin.register(ConsultationPF)
 class ConsultationPFAdmin(admin.ModelAdmin):
     """Admin pour le modèle ConsultationPF"""
-    list_display = ['patient', 'user', 'date', 'methode_prescite', 'methode_posee', 'created_at']
-    list_filter = ['date', 'methode_posee', 'user', 'methode_prescite']
-    search_fields = ['patient__nom', 'patient__prenom', 'notes', 'anamnese']
+    list_display = ['patient', 'specialiste', 'hopital', 'date', 'methode_posee', 'created_at']
+    list_filter = ['date', 'methode_posee', 'hopital', 'specialiste__specialite']
+    search_fields = ['patient__nom', 'patient__prenom', 'notes', 'anamnese', 'specialiste__user__nom']
     date_hierarchy = 'date'
     readonly_fields = ['created_at', 'updated_at']
 
 
-@admin.register(StockItem)
-class StockItemAdmin(admin.ModelAdmin):
-    """Admin pour le modèle StockItem"""
-    list_display = ['methode', 'quantite', 'seuil', 'est_en_rupture', 'est_sous_seuil']
-    list_filter = ['methode__categorie']
-    search_fields = ['methode__nom']
+@admin.register(Pharmacie)
+class PharmacieAdmin(admin.ModelAdmin):
+    """Admin pour le modèle Pharmacie"""
+    list_display = ['nom', 'user', 'telephone', 'actif', 'created_at']
+    list_filter = ['actif', 'created_at']
+    search_fields = ['nom', 'adresse', 'telephone', 'email', 'user__nom', 'user__email']
     readonly_fields = ['created_at', 'updated_at']
-
-
-@admin.register(Prescription)
-class PrescriptionAdmin(admin.ModelAdmin):
-    """Admin pour le modèle Prescription"""
-    list_display = ['consultation', 'methode', 'dosage', 'date_prescription']
-    list_filter = ['date_prescription', 'methode']
-    search_fields = ['consultation__patient__nom', 'methode__nom']
-
-
-@admin.register(MouvementStock)
-class MouvementStockAdmin(admin.ModelAdmin):
-    """Admin pour le modèle MouvementStock"""
-    list_display = ['stock_item', 'type_mouvement', 'quantite', 'user', 'date_mouvement']
-    list_filter = ['type_mouvement', 'date_mouvement']
-    search_fields = ['stock_item__methode__nom', 'motif']
-    readonly_fields = ['date_mouvement']
-    date_hierarchy = 'date_mouvement'
+    date_hierarchy = 'created_at'
 
 
 class ServiceInline(admin.TabularInline):
@@ -169,3 +146,105 @@ class ContactMessageAdmin(admin.ModelAdmin):
     mark_as_read.short_description = "Marquer comme lu"
     
     actions = [mark_as_read]
+
+
+# Admin pour les nouveaux modèles
+
+@admin.register(Hopital)
+class HopitalAdmin(admin.ModelAdmin):
+    """Admin pour le modèle Hopital"""
+    list_display = ['nom', 'code_hopital', 'ville', 'admin_hopital', 'actif', 'created_at']
+    list_filter = ['actif', 'ville', 'pays', 'created_at']
+    search_fields = ['nom', 'code_hopital', 'ville', 'email', 'telephone']
+    readonly_fields = ['created_at', 'updated_at', 'date_inscription']
+    date_hierarchy = 'created_at'
+
+
+@admin.register(Specialite)
+class SpecialiteAdmin(admin.ModelAdmin):
+    """Admin pour le modèle Specialite"""
+    list_display = ['nom', 'code', 'actif', 'created_at']
+    list_filter = ['actif']
+    search_fields = ['nom', 'code', 'description']
+
+
+@admin.register(Specialiste)
+class SpecialisteAdmin(admin.ModelAdmin):
+    """Admin pour le modèle Specialiste"""
+    list_display = ['user', 'hopital', 'specialite', 'titre', 'numero_ordre', 'actif', 'note_moyenne']
+    list_filter = ['actif', 'hopital', 'specialite', 'consultation_en_ligne']
+    search_fields = ['user__nom', 'user__email', 'numero_ordre', 'titre']
+    readonly_fields = ['created_at', 'updated_at', 'note_moyenne', 'nombre_avis']
+
+
+@admin.register(DisponibiliteSpecialiste)
+class DisponibiliteSpecialisteAdmin(admin.ModelAdmin):
+    """Admin pour le modèle DisponibiliteSpecialiste"""
+    list_display = ['specialiste', 'jour_semaine', 'heure_debut', 'heure_fin', 'actif']
+    list_filter = ['jour_semaine', 'actif', 'specialiste__hopital']
+    search_fields = ['specialiste__user__nom']
+
+
+@admin.register(Produit)
+class ProduitAdmin(admin.ModelAdmin):
+    """Admin pour le modèle Produit"""
+    list_display = ['nom', 'code_barre', 'categorie', 'prix_unitaire', 'prescription_requise', 'actif']
+    list_filter = ['categorie', 'prescription_requise', 'actif', 'created_at']
+    search_fields = ['nom', 'code_barre', 'fabricant', 'description']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(StockProduit)
+class StockProduitAdmin(admin.ModelAdmin):
+    """Admin pour le modèle StockProduit"""
+    list_display = ['pharmacie', 'produit', 'quantite', 'seuil_alerte', 'prix_vente', 'date_expiration']
+    list_filter = ['pharmacie', 'produit__categorie', 'date_expiration']
+    search_fields = ['produit__nom', 'pharmacie__nom', 'numero_lot']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+class LigneCommandeInline(admin.TabularInline):
+    """Inline pour les lignes de commande"""
+    model = LigneCommande
+    extra = 1
+    readonly_fields = ['prix_total']
+
+
+@admin.register(CommandePharmacie)
+class CommandePharmacieAdmin(admin.ModelAdmin):
+    """Admin pour le modèle CommandePharmacie"""
+    inlines = [LigneCommandeInline]
+    list_display = ['numero_commande', 'patient', 'pharmacie', 'statut', 'montant_total', 'date_commande']
+    list_filter = ['statut', 'date_commande', 'pharmacie']
+    search_fields = ['numero_commande', 'patient__nom', 'patient__prenom', 'pharmacie__nom']
+    readonly_fields = ['numero_commande', 'date_commande', 'created_at', 'updated_at']
+    date_hierarchy = 'date_commande'
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    """Admin pour le modèle Notification"""
+    list_display = ['user', 'type_notification', 'titre', 'lu', 'created_at']
+    list_filter = ['type_notification', 'lu', 'created_at']
+    search_fields = ['user__nom', 'titre', 'message']
+    readonly_fields = ['created_at', 'date_lecture']
+    date_hierarchy = 'created_at'
+
+
+@admin.register(RapportConsultation)
+class RapportConsultationAdmin(admin.ModelAdmin):
+    """Admin pour le modèle RapportConsultation"""
+    list_display = ['consultation', 'suivi_necessaire', 'envoye_patient', 'date_envoi', 'created_at']
+    list_filter = ['suivi_necessaire', 'envoye_patient', 'created_at']
+    search_fields = ['consultation__patient__nom', 'diagnostic']
+    readonly_fields = ['created_at', 'updated_at', 'date_envoi']
+
+
+@admin.register(AvisSpecialiste)
+class AvisSpecialisteAdmin(admin.ModelAdmin):
+    """Admin pour le modèle AvisSpecialiste"""
+    list_display = ['specialiste', 'patient', 'note', 'recommande', 'created_at']
+    list_filter = ['note', 'recommande', 'created_at']
+    search_fields = ['specialiste__user__nom', 'patient__nom', 'commentaire']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'

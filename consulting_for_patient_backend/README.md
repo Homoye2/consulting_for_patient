@@ -1,222 +1,249 @@
-# Application de Gestion de Planification Familiale
+# Système de Gestion Hospitalière Multi-Tenant
 
-Application web complète pour la gestion de la planification familiale au Centre Hospitalier Abass Ndao.
+Application Django REST API pour la gestion d'un système hospitalier multi-tenant avec focus sur la planification familiale.
 
-## Stack Technique
-
-- **Backend:** Django 5.2.8 + Django REST Framework
-- **Authentification:** JWT (SimpleJWT)
-- **Base de données:** SQLite (développement) / PostgreSQL (production)
-- **Frontend:** React + Vite (à venir)
-
-## Installation
+## 🚀 Installation Rapide
 
 ### Prérequis
-
-- Python 3.10+
+- Python 3.8+
+- MySQL 8.0+
 - pip
 
-### Étapes d'installation
-
-1. **Cloner le projet** (si applicable)
-
-2. **Créer un environnement virtuel**
+### Configuration MySQL
 ```bash
-python -m venv venv
-source venv/bin/activate  # Sur Windows: venv\Scripts\activate
+# 1. Installer et configurer MySQL
+# macOS
+brew install mysql
+brew services start mysql
+
+# Ubuntu
+sudo apt install mysql-server
+sudo systemctl start mysql
+
+# 2. Configuration automatique
+python setup_mysql.py
 ```
 
-3. **Installer les dépendances**
+### Installation des dépendances
 ```bash
+# Créer un environnement virtuel
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# ou
+venv\Scripts\activate  # Windows
+
+# Installer les dépendances
 pip install -r requirements.txt
 ```
 
-4. **Appliquer les migrations**
+### Configuration de la base de données
 ```bash
+# Migrations
+python manage.py makemigrations
 python manage.py migrate
+
+# Seeder avec données de test
+python seed_database.py
 ```
 
-5. **Créer un superutilisateur**
-```bash
-python manage.py createsuperuser
-```
-
-6. **Lancer le serveur de développement**
+### Lancement du serveur
 ```bash
 python manage.py runserver
 ```
 
-Le serveur sera accessible sur `http://localhost:8000`
+## 📊 Base de Données
 
-## Structure du Projet
+### Migration vers MySQL
+Ce projet utilise maintenant MySQL au lieu de SQLite pour de meilleures performances et une meilleure scalabilité.
 
+Voir [MIGRATION_MYSQL.md](MIGRATION_MYSQL.md) pour le guide complet de migration.
+
+### Configuration
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'e_sora',
+        'USER': 'root',
+        'PASSWORD': 'password',
+        'HOST': 'localhost',
+        'PORT': '8888',
+    }
+}
 ```
-consulting_for_patient/
-├── mysite/              # Configuration Django
-│   ├── settings.py      # Paramètres du projet
-│   └── urls.py         # URLs principales
-├── pf/                  # Application principale
-│   ├── models.py       # Modèles de données
-│   ├── serializers.py  # Serializers DRF
-│   ├── views.py        # Viewsets et views
-│   ├── permissions.py  # Permissions personnalisées
-│   ├── urls.py         # URLs de l'application
-│   └── admin.py        # Configuration admin Django
-├── requirements.txt    # Dépendances Python
-└── API_DOCUMENTATION.md # Documentation complète des APIs
+
+## 🔑 Comptes de Test
+
+Le seeder crée automatiquement des comptes de test :
+
+- **Super Admin**: `admin@system.sn` / `admin123`
+- **Admin Hôpital**: `admin.abassndao@hopital.sn` / `admin123`  
+- **Spécialiste**: `dr.aissatou.diallo@hopital.sn` / `doc123`
+- **Pharmacien**: `abdou.diouf@pharma.sn` / `pharma123`
+- **Patients**: Emails générés / `patient123`
+
+## 📚 Documentation
+
+- [Documentation API Complète](API_COMPLETE_DOCUMENTATION.md) - Guide complet de toutes les APIs
+- [Guide de Migration MySQL](MIGRATION_MYSQL.md) - Migration de SQLite vers MySQL
+- [Documentation Swagger](http://localhost:8000/swagger/) - Interface interactive
+
+## 🛠️ Scripts Utiles
+
+### Gestionnaire de base de données
+```bash
+python manage_db.py
 ```
+Menu interactif pour :
+- Afficher les statistiques
+- Créer des sauvegardes
+- Vérifier la santé de la DB
+- Relancer le seeder
 
-## Modèles de Données
+### Seeder personnalisé
+```bash
+python seed_database.py
+```
+Crée des données réalistes :
+- 70+ utilisateurs (tous rôles)
+- 3 hôpitaux avec spécialistes
+- 50 patients avec historique
+- 100 rendez-vous
+- 50 consultations
+- 30 commandes pharmacie
+- Stocks et produits
 
-### User (Utilisateur personnalisé)
-- Gestion des utilisateurs avec rôles
-- Rôles: administrateur, médecin, sage-femme, infirmier, pharmacien, agent d'enregistrement
+## 🏗️ Architecture
 
-### Patient
-- Informations personnelles des patients
-- Antécédents, allergies, historique
+### Modèles Principaux
+- **User** - Système d'authentification multi-rôles
+- **Hopital** - Gestion des établissements
+- **Specialiste** - Médecins et leurs spécialités
+- **Patient** - Profils patients
+- **RendezVous** - Système de rendez-vous
+- **ConsultationPF** - Consultations planification familiale
+- **Pharmacie** - Gestion des pharmacies
+- **CommandePharmacie** - Commandes et livraisons
 
-### ConsultationPF
-- Consultations de planification familiale
-- Anamnèse, examen, méthodes prescrites/posées
+### Rôles Utilisateurs
+- `super_admin` - Accès complet système
+- `admin_hopital` - Gestion d'un hôpital
+- `specialiste` - Médecin spécialiste
+- `pharmacien` - Gestion pharmacie
+- `agent_enregistrement` - Saisie données
+- `patient` - Accès patient
 
-### RendezVous
-- Gestion des rendez-vous
-- Statuts: planifié, confirmé, en cours, terminé, annulé, absent
+## 🔐 Sécurité
 
-### MethodeContraceptive
-- Catalogue des méthodes contraceptives
-- Catégories: hormonale, barrière, DIU, permanent, naturelle
+- Authentification JWT
+- Permissions basées sur les rôles
+- Validation des données
+- Protection CORS configurée
+- Hashage sécurisé des mots de passe
 
-### StockItem
-- Gestion des stocks de méthodes contraceptives
-- Alertes de rupture et seuils
+## 📈 Fonctionnalités
 
-### Prescription
-- Prescriptions liées aux consultations
+### Gestion Hospitalière
+- Multi-tenant (plusieurs hôpitaux)
+- Gestion des spécialistes et disponibilités
+- Système de rendez-vous intelligent
+- Consultations et rapports médicaux
 
-### MouvementStock
-- Traçabilité des mouvements de stock (entrées/sorties)
+### Planification Familiale
+- Méthodes contraceptives
+- Suivi des consultations PF
+- Prescriptions et recommandations
+- Statistiques et rapports
 
-## Documentation API (Swagger)
-
-La documentation interactive des APIs est disponible via Swagger UI :
-
-- **Swagger UI** : `http://localhost:8000/swagger/`
-- **ReDoc** : `http://localhost:8000/redoc/`
-- **Schema JSON** : `http://localhost:8000/swagger.json`
-- **Schema YAML** : `http://localhost:8000/swagger.yaml`
-
-Vous pouvez tester toutes les APIs directement depuis l'interface Swagger.
-
-## APIs Disponibles
-
-### Authentification
-- `POST /api/auth/login/` - Connexion
-- `POST /api/auth/refresh/` - Rafraîchir le token
-
-### CRUD
-- `/api/users/` - Gestion des utilisateurs
-- `/api/patients/` - Gestion des patients
-- `/api/methodes-contraceptives/` - Méthodes contraceptives
-- `/api/rendez-vous/` - Rendez-vous
-- `/api/consultations/` - Consultations PF
-- `/api/stocks/` - Gestion des stocks
-- `/api/prescriptions/` - Prescriptions
-- `/api/mouvements-stock/` - Mouvements de stock
-
-### Statistiques
-- `/api/statistiques/` - Statistiques générales
-- `/api/statistiques/consultations/` - Stats consultations
-- `/api/statistiques/rendez-vous/` - Stats rendez-vous
-- `/api/statistiques/stocks/` - Stats stocks
-
-**Voir `API_DOCUMENTATION.md` pour la documentation complète.**
-
-**Ou accéder directement à la documentation interactive Swagger : `http://localhost:8000/swagger/`**
-
-## Permissions par Rôle
-
-### Administrateur
-- Accès complet à toutes les fonctionnalités
-
-### Médecin / Sage-femme / Infirmier
-- Gestion des patients
-- Gestion des consultations
-- Gestion des rendez-vous
-- Consultation des stocks
-
-### Pharmacien
+### Pharmacie
 - Gestion des stocks
-- Mouvements de stock
-- Consultation des prescriptions
+- Commandes en ligne
+- Suivi des livraisons
+- Alertes de rupture
 
-### Agent d'enregistrement
-- Gestion des rendez-vous
-- Consultation des patients
+### Système de Notifications
+- Notifications temps réel
+- Rappels de rendez-vous
+- Alertes de stock
+- Communications patient-médecin
 
-## Développement
-
-### Créer une migration
-```bash
-python manage.py makemigrations
-```
-
-### Appliquer les migrations
-```bash
-python manage.py migrate
-```
-
-### Accéder à l'admin Django
-```
-http://localhost:8000/admin/
-```
-
-### Créer des données de test
-Utilisez l'interface admin Django ou les APIs pour créer des données de test.
-
-## Configuration
-
-### Variables d'environnement (recommandé pour la production)
-
-Créer un fichier `.env` avec:
-```
-SECRET_KEY=votre_secret_key
-DEBUG=False
-ALLOWED_HOSTS=votre-domaine.com
-DATABASE_URL=postgresql://user:password@localhost/dbname
-```
-
-### CORS
-
-Les origines autorisées sont configurées dans `settings.py`. Pour la production, modifiez `CORS_ALLOWED_ORIGINS`.
-
-## Tests
+## 🧪 Tests
 
 ```bash
+# Lancer les tests
 python manage.py test
+
+# Tests avec couverture
+pip install coverage
+coverage run --source='.' manage.py test
+coverage report
 ```
 
-## Déploiement
+## 📱 API REST
 
-1. Configurer les variables d'environnement
-2. Changer `DEBUG = False` dans `settings.py`
-3. Configurer une base de données PostgreSQL
-4. Collecter les fichiers statiques: `python manage.py collectstatic`
-5. Utiliser un serveur WSGI (Gunicorn, uWSGI)
-6. Configurer un serveur web (Nginx, Apache)
+### Endpoints Principaux
+- `/api/auth/` - Authentification
+- `/api/users/` - Gestion utilisateurs
+- `/api/patients/` - Gestion patients
+- `/api/hopitaux/` - Gestion hôpitaux
+- `/api/specialistes/` - Gestion spécialistes
+- `/api/rendez-vous/` - Gestion rendez-vous
+- `/api/consultations/` - Consultations PF
+- `/api/pharmacies/` - Gestion pharmacies
+- `/api/commandes-pharmacie/` - Commandes
 
-## Documentation
+### Documentation Interactive
+- Swagger UI: http://localhost:8000/swagger/
+- ReDoc: http://localhost:8000/redoc/
 
-- **Documentation API complète:** `API_DOCUMENTATION.md`
-- **Cahier des charges:** `cahier_des_charges_pf.md`
-- **Diagrammes UML:** Voir les fichiers PNG dans le projet
+## 🔧 Maintenance
 
-## Auteur
+### Sauvegarde
+```bash
+# Sauvegarde manuelle
+mysqldump -P 8888 -u root -p e_sora > backup.sql
 
-Développé pour le Centre Hospitalier Abass Ndao
+# Restauration
+mysql -P 8888 -u root -p e_sora < backup.sql
+```
 
-## Licence
+### Monitoring
+```bash
+# Statistiques de la DB
+python manage_db.py
 
-Propriétaire - Tous droits réservés
+# Logs Django
+tail -f logs/django.log
+```
+
+## 🚀 Déploiement
+
+### Variables d'environnement
+```env
+DEBUG=False
+SECRET_KEY=your-secret-key
+DB_NAME=e_sora
+DB_USER=e_sora_user
+DB_PASSWORD=secure_password
+DB_HOST=localhost
+DB_PORT=8888
+```
+
+### Production
+- Utiliser un serveur WSGI (Gunicorn)
+- Configurer un reverse proxy (Nginx)
+- Activer HTTPS
+- Configurer les logs
+- Mettre en place la surveillance
+
+## 📞 Support
+
+Pour toute question ou problème :
+1. Consultez la documentation
+2. Vérifiez les logs
+3. Utilisez le script de diagnostic : `python manage_db.py`
+
+## 📄 Licence
+
+Ce projet est sous licence MIT.
 

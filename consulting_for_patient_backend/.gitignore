@@ -1,0 +1,91 @@
+# Python
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+venv_old*/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/staticfiles
+/static
+
+# Media files (optionnel - décommenter si vous ne voulez pas versionner les uploads)
+# /media
+
+# Fichiers temporaires
+*.bak
+*~
+.DS_Store
+cookies.txt
+token.txt
+passenger_error.log
+stderr.log
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Environnement
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Tests
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Backup files
+*.sql.bak
+*.tar.gz.bak
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

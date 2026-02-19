@@ -5,4 +5,9 @@ django-cors-headers>=4.3.0
 django-filter>=23.0
 drf-yasg>=1.21.7
 Pillow>=10.0.0
+google-auth>=2.23.0
+requests>=2.31.0
+mysqlclient>=2.2.0
+faker>=20.1.0
+mysql-connector-python>=8.0.0
 
